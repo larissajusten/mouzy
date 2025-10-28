@@ -1,0 +1,138 @@
+Prompt para Jogo de Letramento - Ratinho Caça-Letras
+Conceito do Jogo:
+Crie um jogo web multiplayer onde crianças controlam um ratinho com o mouse para coletar itens (queijos e outros alimentos). Para coletar cada item, o jogador deve passar o ratinho por cima dele e então pressionar a(s) tecla(s) correspondente(s) que aparecem na tela. O jogo deve ter sistema de salas, ranking e cronômetro opcional.
+Mecânicas Principais:
+
+Controle do Ratinho
+
+Ratinho segue o cursor do mouse suavemente
+Animação de movimento (ratinho vira para direção do movimento)
+Área de colisão clara e generosa para facilitar acerto
+Efeito visual quando o ratinho está sobre um item coletável
+
+
+Sistema de Coleta e Letras
+
+Quando ratinho passa sobre item, aparece uma letra/combinação de teclas grande na tela
+Nível 1 (1 ponto): Vogais minúsculas (a, e, i, o, u)
+Nível 2 (2 pontos): Consoantes simples (b, c, d, f, etc.)
+Nível 3 (3 pontos): Letras maiúsculas (Shift + letra)
+Nível 4 (5 pontos): Símbolos com modificadores (Shift + . para >, Shift + 1 para !, etc.)
+Feedback visual e sonoro ao pressionar tecla correta/incorreta
+Animação de coleta bem visível com pontuação flutuante
+
+
+Itens e Pontuação
+
+Queijos pequenos (itens básicos): 1-2 pontos
+Queijos médios: 3 pontos
+Itens especiais (frutas, pães): 5 pontos
+Itens bônus raros: pontos dobrados
+Cores diferentes indicam dificuldade/pontuação
+
+
+Sistema Multiplayer
+
+Tela inicial: "Criar Sala" ou "Entrar em Sala"
+Código de sala simples (4-6 caracteres)
+Visualização de todos os jogadores na mesma arena
+Cada jogador tem cor/nome diferente
+Sincronização em tempo real dos movimentos e pontuações
+Sistema anti-trapaça básico
+
+
+Ranking e Interface
+
+Placar lateral mostrando pontuação de todos jogadores em tempo real
+Ranking final ao término do jogo com top 3 destacado
+Animação de celebração para vencedor
+Opção de "jogar novamente" mantendo a sala
+
+
+Cronômetro
+
+Configurável ao criar sala (1, 2, 3, 5 minutos ou sem limite)
+Contador regressivo grande e visível
+Alerta visual e sonoro nos últimos 10 segundos
+Tela de fim de jogo automática ao terminar tempo
+
+
+
+Requisitos Técnicos:
+
+React com hooks para gerenciar estado do jogo
+Armazenamento persistente usando window.storage (shared: true para dados multiplayer)
+Estrutura de dados sugerida:
+
+game-rooms:{roomCode} → {players, items, gameState, timer, createdAt}
+player-scores:{roomCode} → {player1: score, player2: score, ...}
+leaderboard:{roomCode} → ranking final
+
+
+Detecção de teclas com event listeners do teclado
+Animações suaves para movimento do ratinho e coleta
+Responsivo mas otimizado para desktop/laptop (devido ao mouse)
+
+Interface Necessária:
+
+Tela Inicial
+
+Logo do jogo com ratinho animado
+Botões grandes: "Criar Sala" e "Entrar em Sala"
+Campo para nome do jogador
+
+
+Configuração de Sala (ao criar)
+
+Tempo de jogo (dropdown)
+Nível de dificuldade inicial
+Código da sala gerado automaticamente
+Botão "Copiar Código"
+Lista de jogadores aguardando
+Botão "Iniciar Jogo"
+
+
+Arena de Jogo
+
+Área de jogo central (onde ratinhos se movem)
+Itens espalhados aleatoriamente
+Placar lateral com foto/cor e pontuação de cada jogador
+Cronômetro no topo (se ativado)
+Indicador da letra/tecla a pressionar (grande, central)
+Mini tutorial na primeira partida
+
+
+Tela de Ranking Final
+
+Pódio visual (1º, 2º, 3º lugares)
+Lista completa de jogadores e pontuações
+Estatísticas: itens coletados, acertos, tempo jogado
+Botões: "Jogar Novamente" e "Voltar ao Menu"
+
+
+
+Aspectos Pedagógicos:
+
+Começar sempre com letras fáceis, aumentando gradualmente
+Mostrar a tecla a ser pressionada claramente (inclusive sua localização no teclado)
+Permitir erro sem penalização severa (apenas não coleta o item)
+Sons encorajadores para acertos
+Explicação visual de como fazer Shift + tecla
+
+Feedback e Acessibilidade:
+
+Sons distintos para: movimento, coleta, erro, tempo acabando, vitória
+Instruções claras em cada tela
+Opção de ativar/desativar sons
+Contraste adequado entre elementos
+Fontes grandes e legíveis
+
+Diferenciais do Multiplayer:
+
+Competição saudável (sem sabotagem entre jogadores)
+Jogadores não colidem entre si
+Cada jogador vê seu próprio prompt de letra
+Itens suficientes para todos jogarem simultaneamente
+Possibilidade de entrar em jogo já iniciado (como espectador)
+
+Crie uma versão funcional completa com todas estas features, iniciando com um protótipo single-player e depois adicionando o multiplayer. Use cores vibrantes, animações alegres e certifique-se de que a experiência seja divertida e educativa.
