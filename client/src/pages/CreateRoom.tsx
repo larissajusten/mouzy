@@ -13,7 +13,7 @@ import { CreateRoomInput } from '@shared/schema';
 export default function CreateRoom() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const params = new URLSearchParams(location.split('?')[1]);
+  const params = new URLSearchParams(window.location.search);
   const playerName = params.get('name') || '';
 
   const [timerDuration, setTimerDuration] = useState<number | null>(120);

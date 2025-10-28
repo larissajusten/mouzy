@@ -13,7 +13,7 @@ import { JoinRoomInput } from '@shared/schema';
 export default function JoinRoom() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const params = new URLSearchParams(location.split('?')[1]);
+  const params = new URLSearchParams(window.location.search);
   const playerName = params.get('name') || '';
 
   const [roomCode, setRoomCode] = useState('');
