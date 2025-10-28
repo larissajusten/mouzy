@@ -9,6 +9,7 @@ import JoinRoom from "@/pages/JoinRoom";
 import Lobby from "@/pages/Lobby";
 import Game from "@/pages/Game";
 import Results from "@/pages/Results";
+import Achievements from "@/pages/Achievements";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/lobby/:code" component={Lobby} />
       <Route path="/game/:code" component={Game} />
       <Route path="/results/:code" component={Results} />
+      <Route path="/achievements" component={Achievements} />
       <Route component={NotFound} />
     </Switch>
   );

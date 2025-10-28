@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Target, Clock, Home } from 'lucide-react';
 import { PlayerStats } from '@shared/schema';
+import { useAchievements } from '@/hooks/use-achievements';
+import { AchievementToast } from '@/components/AchievementToast';
 
 export default function Results() {
   const [, params] = useRoute('/results/:code');
@@ -14,6 +16,14 @@ export default function Results() {
 
   const [stats, setStats] = useState<PlayerStats[]>([]);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [gameProcessed, setGameProcessed] = useState(false);
+  const [roomDifficulty, setRoomDifficulty] = useState<number | null>(null);
+  const [roomPlayers, setRoomPlayers] = useState<string[]>([]);
+
+  const currentPlayerStats = stats.find(s => s.player.id === playerId);
+  const playerName = currentPlayerStats?.player.name || null;
+  
+  const { newAchievements, updateProgress, clearNewAchievements } = useAchievements(playerId, playerName);
 
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -29,6 +39,18 @@ export default function Results() {
       
       if (message.type === 'game-ended') {
         setStats(message.stats);
+      } else if (message.type === 'room-state') {
+        setRoomDifficulty(message.room.difficulty);
+        setRoomPlayers(message.room.players.map((p: any) => p.id).filter((id: string) => id !== playerId));
+        
+        const finalStats = message.room.players.map((player: any, index: number) => ({
+          position: index + 1,
+          player,
+          accuracy: player.totalAttempts > 0 ? (player.correctAttempts / player.totalAttempts) * 100 : 0,
+          timeElapsed: 0,
+        })).sort((a: any, b: any) => b.player.score - a.player.score);
+        
+        setStats(finalStats);
       }
     };
 
@@ -37,9 +59,36 @@ export default function Results() {
     return () => {
       socket.close();
     };
-  }, [roomCode]);
+  }, [roomCode, playerId]);
 
-  const currentPlayerStats = stats.find(s => s.player.id === playerId);
+  useEffect(() => {
+    if (currentPlayerStats && !gameProcessed && playerId && roomDifficulty !== null) {
+      const storedRooms = localStorage.getItem('ratinho-processed-rooms') || '[]';
+      const processedRooms = JSON.parse(storedRooms);
+      
+      if (!processedRooms.includes(roomCode)) {
+        const matchAccuracy = currentPlayerStats.accuracy;
+        const matchScore = currentPlayerStats.player.score;
+        
+        updateProgress({
+          itemsCollected: currentPlayerStats.player.itemsCollected,
+          correctAttempts: currentPlayerStats.player.correctAttempts,
+          totalAttempts: currentPlayerStats.player.totalAttempts,
+          score: matchScore,
+          difficulty: roomDifficulty,
+          gameCompleted: true,
+          opponents: roomPlayers,
+          matchAccuracy,
+          matchScore,
+        });
+
+        processedRooms.push(roomCode);
+        localStorage.setItem('ratinho-processed-rooms', JSON.stringify(processedRooms));
+        setGameProcessed(true);
+      }
+    }
+  }, [currentPlayerStats, gameProcessed, roomCode, playerId, roomDifficulty, roomPlayers, updateProgress]);
+
   const topThree = stats.slice(0, 3);
 
   const getPodiumHeight = (position: number) => {
@@ -154,7 +203,7 @@ export default function Results() {
         <div className="flex gap-4">
           <Button
             data-testid="button-home"
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation(`/?playerId=${playerId}`)}
             className="flex-1 h-14 text-lg font-bold gap-2"
             size="lg"
           >
@@ -163,6 +212,11 @@ export default function Results() {
           </Button>
         </div>
       </div>
+
+      <AchievementToast
+        achievements={newAchievements}
+        onDismiss={clearNewAchievements}
+      />
     </div>
   );
 }
