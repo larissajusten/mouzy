@@ -97,3 +97,134 @@ export const ITEM_CONFIGS = {
   'apple': { minPoints: 5, maxPoints: 5, size: 56 },
   'bread': { minPoints: 5, maxPoints: 5, size: 60 },
 } as const;
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: 'collection' | 'accuracy' | 'speed' | 'difficulty' | 'social';
+  requirement: number;
+  unlockedAt?: number;
+}
+
+export interface PlayerProgress {
+  playerId: string;
+  playerName: string;
+  totalGamesPlayed: number;
+  totalItemsCollected: number;
+  totalCorrectAttempts: number;
+  totalAttempts: number;
+  highestScore: number;
+  difficultiesCompleted: Set<DifficultyLevel>;
+  uniqueOpponents: Set<string>;
+  achievements: Achievement[];
+  lastPlayedAt: number;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first-steps',
+    name: 'Primeiros Passos',
+    description: 'Colete seu primeiro item',
+    icon: 'Footprints',
+    category: 'collection',
+    requirement: 1,
+  },
+  {
+    id: 'collector-bronze',
+    name: 'Colecionador de Bronze',
+    description: 'Colete 10 itens',
+    icon: 'Award',
+    category: 'collection',
+    requirement: 10,
+  },
+  {
+    id: 'collector-silver',
+    name: 'Colecionador de Prata',
+    description: 'Colete 50 itens',
+    icon: 'Medal',
+    category: 'collection',
+    requirement: 50,
+  },
+  {
+    id: 'collector-gold',
+    name: 'Colecionador de Ouro',
+    description: 'Colete 100 itens',
+    icon: 'Trophy',
+    category: 'collection',
+    requirement: 100,
+  },
+  {
+    id: 'sharp-shooter',
+    name: 'Atirador de Elite',
+    description: 'Acerte 90% das teclas em uma partida',
+    icon: 'Target',
+    category: 'accuracy',
+    requirement: 90,
+  },
+  {
+    id: 'perfect-game',
+    name: 'Jogo Perfeito',
+    description: 'Acerte 100% das teclas em uma partida',
+    icon: 'Star',
+    category: 'accuracy',
+    requirement: 100,
+  },
+  {
+    id: 'vowel-master',
+    name: 'Mestre das Vogais',
+    description: 'Complete uma partida no nível Vogais',
+    icon: 'BookA',
+    category: 'difficulty',
+    requirement: 1,
+  },
+  {
+    id: 'consonant-champion',
+    name: 'Campeão das Consoantes',
+    description: 'Complete uma partida no nível Consoantes',
+    icon: 'BookOpen',
+    category: 'difficulty',
+    requirement: 2,
+  },
+  {
+    id: 'uppercase-hero',
+    name: 'Herói das Maiúsculas',
+    description: 'Complete uma partida no nível Maiúsculas',
+    icon: 'BookMarked',
+    category: 'difficulty',
+    requirement: 3,
+  },
+  {
+    id: 'symbol-legend',
+    name: 'Lenda dos Símbolos',
+    description: 'Complete uma partida no nível Símbolos',
+    icon: 'Sparkles',
+    category: 'difficulty',
+    requirement: 4,
+  },
+  {
+    id: 'social-butterfly',
+    name: 'Borboleta Social',
+    description: 'Jogue com 5 jogadores diferentes',
+    icon: 'Users',
+    category: 'social',
+    requirement: 5,
+  },
+  {
+    id: 'dedicated-player',
+    name: 'Jogador Dedicado',
+    description: 'Complete 10 partidas',
+    icon: 'Gamepad2',
+    category: 'collection',
+    requirement: 10,
+  },
+  {
+    id: 'high-scorer',
+    name: 'Pontuador Estrela',
+    description: 'Alcance 50 pontos em uma partida',
+    icon: 'Star',
+    category: 'collection',
+    requirement: 50,
+  },
+];

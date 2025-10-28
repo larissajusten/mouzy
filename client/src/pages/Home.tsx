@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { MousePointer2, Users, Play } from 'lucide-react';
+import { MousePointer2, Users, Play, Trophy } from 'lucide-react';
 import mouseImage from '@assets/generated_images/Cheerful_mouse_mascot_character_88dac16c.png';
 import cheeseImage from '@assets/generated_images/Yellow_cheese_game_item_8dd92be1.png';
 import appleImage from '@assets/generated_images/Red_apple_game_item_b556ba8e.png';
@@ -13,6 +13,23 @@ import breadImage from '@assets/generated_images/Bread_loaf_game_item_335458bc.p
 export default function Home() {
   const [, setLocation] = useLocation();
   const [playerName, setPlayerName] = useState('');
+  const [storedPlayerId, setStoredPlayerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('playerId');
+    if (id) {
+      setStoredPlayerId(id);
+      const stored = localStorage.getItem('ratinho-player-progress');
+      if (stored) {
+        const allProgress = JSON.parse(stored);
+        const progress = allProgress[id];
+        if (progress?.playerName) {
+          setPlayerName(progress.playerName);
+        }
+      }
+    }
+  }, []);
 
   const handleCreateRoom = () => {
     if (playerName.trim()) {
@@ -104,7 +121,18 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-border">
+        <div className="pt-4 border-t border-border space-y-3">
+          {storedPlayerId && (
+            <Button
+              data-testid="button-achievements"
+              onClick={() => setLocation(`/achievements?playerId=${storedPlayerId}`)}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              <Trophy className="w-4 h-4" />
+              Ver Conquistas
+            </Button>
+          )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
             <MousePointer2 className="w-4 h-4" />
             <span>Use o mouse para controlar o ratinho</span>
