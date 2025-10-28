@@ -10,7 +10,7 @@ export default function Lobby() {
   const [, params] = useRoute('/lobby/:code');
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryParams = new URLSearchParams(location.split('?')[1]);
+  const queryParams = new URLSearchParams(window.location.search);
   const playerId = queryParams.get('playerId');
   const roomCode = params?.code || '';
 

@@ -107,9 +107,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   wss.on('connection', (ws: WSClient) => {
+    console.log('WebSocket connected');
+    
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
+        console.log('WebSocket message received:', message.type, message);
 
         switch (message.type) {
           case 'join-room': {
@@ -122,6 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             rooms.get(roomCode)!.add(ws);
 
+            console.log(`Player ${playerId} joined room ${roomCode}`);
             await sendRoomState(ws, roomCode);
             
             const room = await storage.getRoom(roomCode);
@@ -136,10 +140,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'start-game': {
             const { roomCode } = message;
+            console.log(`Starting game in room ${roomCode}`);
             const items = await storage.startGame(roomCode);
             const room = await storage.getRoom(roomCode);
             
             if (room) {
+              console.log(`Game started for room ${roomCode}, broadcasting to ${rooms.get(roomCode)?.size} clients`);
               broadcastToRoom(roomCode, { 
                 type: 'game-started', 
                 items, 

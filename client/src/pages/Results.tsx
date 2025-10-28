@@ -8,7 +8,7 @@ import { PlayerStats } from '@shared/schema';
 export default function Results() {
   const [, params] = useRoute('/results/:code');
   const [location, setLocation] = useLocation();
-  const queryParams = new URLSearchParams(location.split('?')[1]);
+  const queryParams = new URLSearchParams(window.location.search);
   const playerId = queryParams.get('playerId');
   const roomCode = params?.code || '';
 
