@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { MousePointer2, Users, Play, Trophy } from 'lucide-react';
+import { MousePointer2, Users, Play, Trophy, GraduationCap } from 'lucide-react';
 import mouseImage from '@assets/generated_images/Cheerful_mouse_mascot_character_88dac16c.png';
 import cheeseImage from '@assets/generated_images/Yellow_cheese_game_item_8dd92be1.png';
 import appleImage from '@assets/generated_images/Red_apple_game_item_b556ba8e.png';
@@ -122,6 +122,19 @@ export default function Home() {
         </div>
 
         <div className="pt-4 border-t border-border space-y-3">
+          <Button
+            data-testid="button-training"
+            onClick={() => {
+              const id = storedPlayerId || `player-${Date.now()}`;
+              setLocation(`/training?playerId=${id}`);
+            }}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <GraduationCap className="w-4 h-4" />
+            Modo Treino
+          </Button>
+
           {storedPlayerId && (
             <Button
               data-testid="button-achievements"

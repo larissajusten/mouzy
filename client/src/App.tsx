@@ -10,6 +10,7 @@ import Lobby from "@/pages/Lobby";
 import Game from "@/pages/Game";
 import Results from "@/pages/Results";
 import Achievements from "@/pages/Achievements";
+import Training from "@/pages/Training";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/game/:code" component={Game} />
       <Route path="/results/:code" component={Results} />
       <Route path="/achievements" component={Achievements} />
+      <Route path="/training" component={Training} />
       <Route component={NotFound} />
     </Switch>
   );
