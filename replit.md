@@ -12,6 +12,7 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - ✅ Feedback sonoro usando Web Audio API
 - ✅ Sistema de conquistas e badges
 - ✅ Progressão persistente via localStorage
+- ✅ Modo treino solo com IA adaptativa
 - ✅ Todas as páginas implementadas e testadas
 
 ### Funcionalidades Ativas
@@ -21,6 +22,15 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - Feedback visual e sonoro ao pressionar teclas
 - Placar ao vivo e ranking final com pódio
 - Cronômetro configurável (1, 2, 3, 5 min ou infinito)
+
+**Modo Treino Solo:**
+- Jogo infinito focado em aprendizado
+- IA adaptativa que ajusta dificuldade automaticamente:
+  - Aumenta dificuldade com 80%+ de acertos nos últimos 5 itens
+  - Diminui dificuldade com 40%- de acertos nos últimos 5 itens
+- Indicadores visuais de tendência (subindo/descendo/estável)
+- Estatísticas em tempo real: pontuação, precisão, nível atual
+- Geração contínua de itens para prática ilimitada
 
 **Progressão do Jogador:**
 - 14 conquistas distribuídas em 4 categorias:
@@ -32,10 +42,10 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - Notificações animadas quando conquistas são desbloqueadas
 - Progresso persistente usando localStorage
 
-### Próximas Etapas
-- Modo treino solo com IA adaptativa
-- Estatísticas detalhadas com gráficos
+### Possíveis Melhorias Futuras
+- Estatísticas detalhadas com gráficos de evolução
 - Temas visuais e avatares personalizados
+- Chat moderado para interação social
 
 ## Arquitetura do Projeto
 
@@ -47,6 +57,8 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - `/lobby/:code` - Sala de espera
 - `/game/:code` - Arena de jogo principal
 - `/results/:code` - Ranking final
+- `/achievements` - Conquistas desbloqueadas
+- `/training` - Modo treino solo com IA adaptativa
 
 **Componentes Principais:**
 - `MouseCursor` - Ratinho seguindo cursor do mouse
