@@ -9,6 +9,7 @@ import { GameTimer } from '@/components/GameTimer';
 import { FloatingScore } from '@/components/FloatingScore';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { playCorrectSound, playIncorrectSound, playCollectSound } from '@/lib/sounds';
 
 interface FloatingScoreData {
   id: string;
@@ -134,6 +135,13 @@ export default function Game() {
     const isCorrect = hoveredItem.requiresShift
       ? isShiftPressed && key === expectedKey
       : !isShiftPressed && key === expectedKey;
+
+    if (isCorrect) {
+      playCorrectSound();
+      playCollectSound();
+    } else {
+      playIncorrectSound();
+    }
 
     ws.send(JSON.stringify({
       type: 'collect-item',
