@@ -6,25 +6,36 @@ Jogo educativo multiplayer em tempo real onde crianças controlam um ratinho com
 ## Propósito
 Ensinar alfabetização de forma divertida e interativa através de um jogo competitivo multiplayer que progressivamente aumenta a dificuldade (vogais → consoantes → maiúsculas → símbolos).
 
-## Estado Atual
-### Fase 1 Completa - Schema & Frontend
-- ✅ Schema de dados definido para salas, jogadores, itens e estado do jogo
-- ✅ Imagens geradas (ratinho mascote, queijos, maçã, pão)
-- ✅ Design system configurado com fonte Fredoka e cores vibrantes
-- ✅ Todos os componentes React criados:
-  - Tela inicial com entrada de nome do jogador
-  - Criação de sala com configurações (tempo, dificuldade)
-  - Entrada em sala existente via código
-  - Lobby de espera com lista de jogadores
-  - Arena de jogo com ratinhos movendo-se e itens coletáveis
-  - Sistema de pontuação ao vivo
-  - Cronômetro visual
-  - Tela de ranking final com pódio
+## Estado Atual (Outubro 2025)
+### MVP Completo e Funcional ✅
+- ✅ Jogo multiplayer funcional com WebSocket
+- ✅ Feedback sonoro usando Web Audio API
+- ✅ Sistema de conquistas e badges
+- ✅ Progressão persistente via localStorage
+- ✅ Todas as páginas implementadas e testadas
+
+### Funcionalidades Ativas
+**Core Gameplay:**
+- Sistema multiplayer em tempo real via WebSocket
+- 4 níveis de dificuldade (vogais, consoantes, maiúsculas, símbolos)
+- Feedback visual e sonoro ao pressionar teclas
+- Placar ao vivo e ranking final com pódio
+- Cronômetro configurável (1, 2, 3, 5 min ou infinito)
+
+**Progressão do Jogador:**
+- 14 conquistas distribuídas em 4 categorias:
+  - Coleção (itens coletados, jogos completos, alta pontuação)
+  - Precisão (90% e 100% de acertos por partida)
+  - Dificuldade (completar níveis)
+  - Social (jogar com diferentes pessoas)
+- Página dedicada mostrando conquistas desbloqueadas/bloqueadas
+- Notificações animadas quando conquistas são desbloqueadas
+- Progresso persistente usando localStorage
 
 ### Próximas Etapas
-- Backend com WebSocket para sincronização multiplayer
-- Integração frontend-backend
-- Testes end-to-end
+- Modo treino solo com IA adaptativa
+- Estatísticas detalhadas com gráficos
+- Temas visuais e avatares personalizados
 
 ## Arquitetura do Projeto
 
