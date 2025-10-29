@@ -155,13 +155,29 @@ export default function Training() {
     if (!hoveredItem) return;
 
     const key = e.key;
+    
+    // Ignorar teclas modificadoras (Shift, Ctrl, Alt, Meta)
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {
+      return;
+    }
+
     const expectedLetter = hoveredItem.letter;
+
+    console.log('🔑 Tecla pressionada:', {
+      key,
+      expectedLetter,
+      requiresShift: hoveredItem.requiresShift,
+      shiftKey: e.shiftKey,
+      difficultyLevel: hoveredItem.difficultyLevel
+    });
 
     // Para maiúsculas: verificar se é a letra correta (case-insensitive) E Shift está pressionado
     // Para símbolos e caracteres especiais: verificar correspondência exata
     const isCorrect = hoveredItem.requiresShift
       ? key === expectedLetter
       : key.toLowerCase() === expectedLetter.toLowerCase();
+
+    console.log('✅ Resultado:', isCorrect ? 'CORRETO' : 'INCORRETO');
 
     if (isCorrect) {
       playCorrectSound();
