@@ -189,3 +189,49 @@ O projeto inclui Storybook para desenvolvimento e documentação de componentes:
 - **Game Components**: MouseCursor, CollectibleItem, ScoreBoard, LetterPrompt, FloatingScore, GameTimer
 - Rodar com: `npx storybook dev -p 6006`
 - Build com: `npx storybook build`
+
+## Testes
+Infraestrutura completa de testes em três níveis:
+
+### Frameworks
+- **Vitest**: Testes unitários e de componentes (compatível com Vite)
+- **Testing Library**: Testes de componentes React do ponto de vista do usuário
+- **Playwright**: Testes E2E cross-browser com auto-wait
+
+### Arquivos de Teste
+**Componentes:**
+- `client/src/components/ui/button.test.tsx` - Variantes, tamanhos, eventos
+- `client/src/components/MouseCursor.test.tsx` - Posicionamento, cores
+- `client/src/components/ScoreBoard.test.tsx` - Ranking, pontuação
+- `client/src/components/GameTimer.test.tsx` - Formatação de tempo
+
+**Unitários:**
+- `client/src/lib/utils.test.ts` - Merge de classes CSS (cn)
+- `client/src/components/MouseCursor.unit.test.ts` - Helper getHueRotation
+- `client/src/hooks/use-toast.test.ts` - Reducer de toasts
+
+**E2E:**
+- `e2e/game-flow.spec.ts` - Navegação entre páginas
+- `e2e/multiplayer.spec.ts` - Funcionalidades multiplayer
+- `e2e/training-mode.spec.ts` - Modo treino
+- `e2e/achievements.spec.ts` - Página de conquistas
+
+### Comandos
+```bash
+# Testes unitários e de componentes
+npm test                  # Roda todos os testes
+npm test -- --watch       # Modo watch
+npm test -- --ui          # UI interativa
+
+# Testes E2E
+npx playwright test       # Roda testes E2E
+npx playwright test --ui  # Modo UI
+npx playwright test --debug  # Debug mode
+```
+
+### Cobertura
+- ✅ Componentes principais (Button, MouseCursor, ScoreBoard, GameTimer)
+- ✅ Funções helper (getHueRotation, cn, toast reducer)
+- ✅ Fluxos E2E (navegação, multiplayer, treino, conquistas)
+
+Ver `TESTING.md` para guia completo de testes.

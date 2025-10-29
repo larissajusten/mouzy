@@ -67,7 +67,7 @@ export function MouseCursor({ position, color, playerName, isLocal = false }: Mo
   );
 }
 
-function getHueRotation(color: string): number {
+export function getHueRotation(color: string): number {
   const colorMap: Record<string, number> = {
     '#EF4444': 0,
     '#3B82F6': 220,

@@ -1,18 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-function getHueRotation(color: string): number {
-  const colorMap: Record<string, number> = {
-    '#EF4444': 0,
-    '#3B82F6': 220,
-    '#10B981': 140,
-    '#F59E0B': 40,
-    '#A855F7': 280,
-    '#F97316': 20,
-    '#EC4899': 320,
-    '#14B8A6': 180,
-  };
-  return colorMap[color] || 0;
-}
+import { getHueRotation } from './MouseCursor';
 
 describe('getHueRotation', () => {
   it('returns correct hue for red color', () => {
