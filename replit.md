@@ -181,3 +181,11 @@ CollectibleItem {
 - Servidor Vite na porta 5000
 - WebSocket path: `/ws`
 - Express backend integrado
+- Storybook disponível com `npx storybook dev -p 6006`
+
+## Storybook
+O projeto inclui Storybook para desenvolvimento e documentação de componentes:
+- **UI Components**: Button, Card, Badge (todos os shadcn components)
+- **Game Components**: MouseCursor, CollectibleItem, ScoreBoard, LetterPrompt, FloatingScore, GameTimer
+- Rodar com: `npx storybook dev -p 6006`
+- Build com: `npx storybook build`
