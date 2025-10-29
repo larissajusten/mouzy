@@ -215,6 +215,7 @@ Infraestrutura completa de testes em três níveis:
 - `e2e/multiplayer.spec.ts` - Funcionalidades multiplayer
 - `e2e/training-mode.spec.ts` - Modo treino
 - `e2e/achievements.spec.ts` - Página de conquistas
+- `e2e/websocket-integration.spec.ts` - Integração WebSocket avançada
 
 ### Comandos
 ```bash
@@ -233,5 +234,13 @@ npx playwright test --debug  # Debug mode
 - ✅ Componentes principais (Button, MouseCursor, ScoreBoard, GameTimer)
 - ✅ Funções helper (getHueRotation, cn, toast reducer)
 - ✅ Fluxos E2E (navegação, multiplayer, treino, conquistas)
+- ✅ **Integração WebSocket** (spawning de itens, coleta, reconexão, sincronização multiplayer)
+
+**Testes Avançados de WebSocket:**
+- Spawning e coleta de itens com atualização de score em tempo real
+- Reconexão de jogadores dentro do grace period de 30s
+- Remoção automática após timeout de 30s sem reconexão
+- Sincronização de pontuação entre 2-3 jogadores simultâneos
+- Atualização dinâmica do scoreboard em tempo real
 
 Ver `TESTING.md` para guia completo de testes.
