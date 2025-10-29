@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { GameRoom, CollectibleItem, Position, WebSocketMessage } from '@shared/schema';
 import { MouseCursor } from '@/components/MouseCursor';
@@ -30,6 +30,7 @@ export default function Game() {
   const [mousePosition, setMousePosition] = useState<Position>({ x: 0, y: 0 });
   const [hoveredItem, setHoveredItem] = useState<CollectibleItem | null>(null);
   const [floatingScores, setFloatingScores] = useState<FloatingScoreData[]>([]);
+  const lastSentPosition = useRef({ x: 0, y: 0, time: 0 });
 
   const currentPlayer = room?.players.find(p => p.id === playerId);
 
@@ -96,13 +97,23 @@ export default function Game() {
     
     setMousePosition({ x, y });
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    // Throttle: enviar atualização de posição apenas a cada 50ms
+    const now = Date.now();
+    const timeSinceLastSend = now - lastSentPosition.current.time;
+    const distanceMoved = Math.sqrt(
+      Math.pow(x - lastSentPosition.current.x, 2) + Math.pow(y - lastSentPosition.current.y, 2)
+    );
+
+    if (ws && ws.readyState === WebSocket.OPEN && (timeSinceLastSend > 50 || distanceMoved > 10)) {
       ws.send(JSON.stringify({
         type: 'player-move',
         roomCode,
         playerId,
         position: { x, y },
       }));
+      lastSentPosition.current.x = x;
+      lastSentPosition.current.y = y;
+      lastSentPosition.current.time = now;
     }
 
     if (!room) return;
@@ -128,13 +139,14 @@ export default function Game() {
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
     if (!hoveredItem || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    const key = e.key.toLowerCase();
-    const isShiftPressed = e.shiftKey;
-    const expectedKey = hoveredItem.letter.toLowerCase();
+    const key = e.key;
+    const expectedLetter = hoveredItem.letter;
     
+    // Para maiúsculas: verificar se é a letra correta (case-insensitive) E Shift está pressionado
+    // Para símbolos e caracteres especiais: verificar correspondência exata
     const isCorrect = hoveredItem.requiresShift
-      ? isShiftPressed && key === expectedKey
-      : !isShiftPressed && key === expectedKey;
+      ? key === expectedLetter
+      : key.toLowerCase() === expectedLetter.toLowerCase();
 
     if (isCorrect) {
       playCorrectSound();
