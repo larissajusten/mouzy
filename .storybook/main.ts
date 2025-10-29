@@ -21,6 +21,7 @@ const config: StorybookConfig = {
         alias: {
           "@": "/client/src",
           "@assets": "/attached_assets",
+          "@shared": "/shared",
         },
       },
     });
