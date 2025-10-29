@@ -89,8 +89,15 @@ export default function Training() {
   const [, setLocation] = useLocation();
   const queryParams = new URLSearchParams(window.location.search);
   const playerId = queryParams.get('playerId');
+  
+  // Suporte para iniciar com nível específico (útil para testes)
+  const initialLevel = queryParams.get('level');
+  const parsedLevel = initialLevel ? parseInt(initialLevel) : DifficultyLevel.VOGAIS;
+  const validLevel = (parsedLevel >= DifficultyLevel.VOGAIS && parsedLevel <= DifficultyLevel.SIMBOLOS) 
+    ? parsedLevel as DifficultyLevel 
+    : DifficultyLevel.VOGAIS;
 
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.VOGAIS);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>(validLevel);
   const [items, setItems] = useState<CollectibleItem[]>([]);
   const [mousePosition, setMousePosition] = useState<Position>({ x: 0, y: 0 });
   const [hoveredItem, setHoveredItem] = useState<CollectibleItem | null>(null);
