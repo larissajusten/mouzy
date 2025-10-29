@@ -13,6 +13,8 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - ✅ Sistema de conquistas e badges
 - ✅ Progressão persistente via localStorage
 - ✅ Modo treino solo com IA adaptativa
+- ✅ Sistema de reconexão com grace period de 30s
+- ✅ Botão de conquistas sempre visível
 - ✅ Todas as páginas implementadas e testadas
 
 ### Funcionalidades Ativas
@@ -41,6 +43,14 @@ Ensinar alfabetização de forma divertida e interativa através de um jogo comp
 - Página dedicada mostrando conquistas desbloqueadas/bloqueadas
 - Notificações animadas quando conquistas são desbloqueadas
 - Progresso persistente usando localStorage
+- Botão de conquistas sempre visível na home (mesmo sem histórico)
+
+**Sistema de Reconexão:**
+- Grace period de 30 segundos para reconexões
+- Jogadores podem atualizar a página sem perder o jogo
+- Remoção automática após timeout se não reconectar
+- UI atualizada em tempo real via WebSocket
+- Sala deletada imediatamente se todos desconectam
 
 ### Possíveis Melhorias Futuras
 - Estatísticas detalhadas com gráficos de evolução

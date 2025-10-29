@@ -38,6 +38,15 @@ export default function Lobby() {
         if (message.room.gameState === 'playing') {
           setLocation(`/game/${roomCode}?playerId=${playerId}`);
         }
+      } else if (message.type === 'player-left') {
+        // Atualizar UI removendo o jogador que saiu
+        setRoom(prevRoom => {
+          if (!prevRoom) return prevRoom;
+          return {
+            ...prevRoom,
+            players: prevRoom.players.filter(p => p.id !== message.playerId)
+          };
+        });
       }
     };
 
