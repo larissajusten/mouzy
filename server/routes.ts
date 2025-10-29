@@ -39,6 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const rooms = new Map<string, Set<WSClient>>();
   const timers = new Map<string, NodeJS.Timeout>();
+  const disconnectTimers = new Map<string, NodeJS.Timeout>(); // playerId -> timeout
 
   function broadcastToRoom(roomCode: string, message: WebSocketMessage, excludeClient?: WSClient) {
     const clients = rooms.get(roomCode);
@@ -120,12 +121,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ws.roomCode = roomCode;
             ws.playerId = playerId;
 
+            // Verificar se este jogador está reconectando (cancelar timeout de remoção)
+            const disconnectTimerKey = `${roomCode}:${playerId}`;
+            if (disconnectTimers.has(disconnectTimerKey)) {
+              clearTimeout(disconnectTimers.get(disconnectTimerKey));
+              disconnectTimers.delete(disconnectTimerKey);
+              console.log(`Player ${playerId} reconnected to room ${roomCode}`);
+            } else {
+              console.log(`Player ${playerId} joined room ${roomCode}`);
+            }
+
             if (!rooms.has(roomCode)) {
               rooms.set(roomCode, new Set());
             }
             rooms.get(roomCode)!.add(ws);
-
-            console.log(`Player ${playerId} joined room ${roomCode}`);
             
             // Enviar estado completo da sala para TODOS os clientes (incluindo o novo)
             const clients = rooms.get(roomCode);
@@ -232,7 +241,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const clients = rooms.get(ws.roomCode);
         if (clients) {
           clients.delete(ws);
+          console.log(`Player ${ws.playerId} disconnected from room ${ws.roomCode}, ${clients.size} clients remaining`);
           
+          // Se não sobrou ninguém na sala, deletar tudo imediatamente
           if (clients.size === 0) {
             rooms.delete(ws.roomCode);
             const timer = timers.get(ws.roomCode);
@@ -241,12 +252,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timers.delete(ws.roomCode);
             }
             await storage.deleteRoom(ws.roomCode);
+            console.log(`Room ${ws.roomCode} deleted (no clients remaining)`);
           } else {
-            await storage.removePlayer(ws.roomCode, ws.playerId);
-            broadcastToRoom(ws.roomCode, { 
-              type: 'player-left', 
-              playerId: ws.playerId 
-            });
+            // Se ainda há outros clientes, dar 30 segundos para reconectar
+            const roomCode = ws.roomCode;
+            const playerId = ws.playerId;
+            const disconnectTimerKey = `${roomCode}:${playerId}`;
+            const timeout = setTimeout(async () => {
+              console.log(`Player ${playerId} removal timeout expired (30s), removing from room ${roomCode}`);
+              await storage.removePlayer(roomCode, playerId);
+              broadcastToRoom(roomCode, { 
+                type: 'player-left', 
+                playerId 
+              });
+              disconnectTimers.delete(disconnectTimerKey);
+            }, 30000); // 30 segundos
+            
+            disconnectTimers.set(disconnectTimerKey, timeout);
+            console.log(`Started 30s reconnection grace period for player ${playerId}`);
           }
         }
       }

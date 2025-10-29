@@ -135,17 +135,18 @@ export default function Home() {
             Modo Treino
           </Button>
 
-          {storedPlayerId && (
-            <Button
-              data-testid="button-achievements"
-              onClick={() => setLocation(`/achievements?playerId=${storedPlayerId}`)}
-              variant="outline"
-              className="w-full gap-2"
-            >
-              <Trophy className="w-4 h-4" />
-              Ver Conquistas
-            </Button>
-          )}
+          <Button
+            data-testid="button-achievements"
+            onClick={() => {
+              const id = storedPlayerId || `player-${Date.now()}`;
+              setLocation(`/achievements?playerId=${id}`);
+            }}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <Trophy className="w-4 h-4" />
+            Ver Conquistas
+          </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
             <MousePointer2 className="w-4 h-4" />
             <span>Use o mouse para controlar o ratinho</span>
