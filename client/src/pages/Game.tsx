@@ -140,6 +140,12 @@ export default function Game() {
     if (!hoveredItem || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     const key = e.key;
+    
+    // Ignorar teclas modificadoras (Shift, Ctrl, Alt, Meta)
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {
+      return;
+    }
+
     const expectedLetter = hoveredItem.letter;
     
     // Para maiúsculas: verificar se é a letra correta (case-insensitive) E Shift está pressionado
