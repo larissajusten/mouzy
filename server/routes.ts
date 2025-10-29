@@ -40,6 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const rooms = new Map<string, Set<WSClient>>();
   const timers = new Map<string, NodeJS.Timeout>();
   const disconnectTimers = new Map<string, NodeJS.Timeout>(); // playerId -> timeout
+  const roomCleanupTimers = new Map<string, NodeJS.Timeout>(); // roomCode -> timeout for empty room cleanup
 
   function broadcastToRoom(roomCode: string, message: WebSocketMessage, excludeClient?: WSClient) {
     const clients = rooms.get(roomCode);
@@ -120,6 +121,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const { roomCode, playerId } = message;
             ws.roomCode = roomCode;
             ws.playerId = playerId;
+
+            // If there was a pending cleanup for this room (because it became empty), cancel it
+            if (roomCleanupTimers.has(roomCode)) {
+              clearTimeout(roomCleanupTimers.get(roomCode));
+              roomCleanupTimers.delete(roomCode);
+              console.log(`Cancelled empty-room cleanup timer for room ${roomCode} (client rejoined)`);
+            }
 
             // Verificar se este jogador está reconectando (cancelar timeout de remoção)
             const disconnectTimerKey = `${roomCode}:${playerId}`;
@@ -243,16 +251,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clients.delete(ws);
           console.log(`Player ${ws.playerId} disconnected from room ${ws.roomCode}, ${clients.size} clients remaining`);
           
-          // Se não sobrou ninguém na sala, deletar tudo imediatamente
+          // Se não sobrou ninguém na sala, agendar limpeza após um período de carência
           if (clients.size === 0) {
-            rooms.delete(ws.roomCode);
-            const timer = timers.get(ws.roomCode);
-            if (timer) {
-              clearInterval(timer);
-              timers.delete(ws.roomCode);
+            const roomCode = ws.roomCode;
+            if (roomCleanupTimers.has(roomCode)) {
+              clearTimeout(roomCleanupTimers.get(roomCode));
+              roomCleanupTimers.delete(roomCode);
             }
-            await storage.deleteRoom(ws.roomCode);
-            console.log(`Room ${ws.roomCode} deleted (no clients remaining)`);
+            const timeout = setTimeout(async () => {
+              // Double-check still empty
+              const currentClients = rooms.get(roomCode);
+              if (!currentClients || currentClients.size === 0) {
+                rooms.delete(roomCode);
+                const timer = timers.get(roomCode);
+                if (timer) {
+                  clearInterval(timer);
+                  timers.delete(roomCode);
+                }
+                await storage.deleteRoom(roomCode);
+                console.log(`Room ${roomCode} deleted after grace period (no clients rejoined)`);
+              } else {
+                console.log(`Room ${roomCode} not deleted, clients rejoined during grace period`);
+              }
+              roomCleanupTimers.delete(roomCode);
+            }, 30000); // 30 segundos
+            roomCleanupTimers.set(roomCode, timeout);
+            console.log(`Scheduled empty-room cleanup for room ${roomCode} in 30s`);
           } else {
             // Se ainda há outros clientes, dar 30 segundos para reconectar
             const roomCode = ws.roomCode;

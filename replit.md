@@ -178,7 +178,7 @@ CollectibleItem {
 - Tailwind CSS (estilização)
 
 ## Configuração
-- Servidor Vite na porta 5000
+- Servidor Vite na porta 5001
 - WebSocket path: `/ws`
 - Express backend integrado
 - Storybook disponível com `npx storybook dev -p 6006`

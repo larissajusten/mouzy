@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('WebSocket Integration - Item Spawning & Collection', () => {
   test('should spawn items and allow collection with correct key press', async ({ page }) => {
     // Create room as host
-    await page.goto('http://localhost:5000');
+    await page.goto('http://localhost:5001');
     await page.fill('[data-testid="input-player-name"]', 'TestPlayer1');
     await page.click('[data-testid="button-create-room"]');
 
@@ -35,7 +35,7 @@ test.describe('WebSocket Integration - Item Spawning & Collection', () => {
       await page.mouse.move(itemBox.x + itemBox.width / 2, itemBox.y + itemBox.height / 2);
       
       // Wait for letter prompt to appear
-      await expect(page.locator('[data-testid="letter-prompt"]')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('[data-testid="letter-prompt"]')).toBeVisible({ timeout: 5001 });
       
       // Get the letter to press
       const letterText = await page.locator('[data-testid="text-letter"]').textContent();
@@ -73,7 +73,7 @@ test.describe('WebSocket Integration - Item Spawning & Collection', () => {
 
   test('should spawn new items after collection', async ({ page }) => {
     // Create room and start game
-    await page.goto('http://localhost:5000');
+    await page.goto('http://localhost:5001');
     await page.fill('[data-testid="input-player-name"]', 'ItemSpawnTester');
     await page.click('[data-testid="button-create-room"]');
     await page.click('[data-testid="button-start-game"]');
@@ -128,7 +128,7 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
 
     try {
       // Player 1 creates room
-      await page1.goto('http://localhost:5000');
+      await page1.goto('http://localhost:5001');
       await page1.fill('[data-testid="input-player-name"]', 'Player1');
       await page1.click('[data-testid="button-create-room"]');
       
@@ -136,7 +136,7 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
       const roomCode = await page1.locator('[data-testid="text-room-code"]').textContent();
 
       // Player 2 joins
-      await page2.goto('http://localhost:5000');
+      await page2.goto('http://localhost:5001');
       await page2.fill('[data-testid="input-player-name"]', 'Player2');
       await page2.click('[data-testid="button-join-room"]');
       await page2.fill('[data-testid="input-room-code"]', roomCode!);
@@ -161,7 +161,7 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
 
       // Player 2 should be redirected to home (lost game state on client)
       // But should be able to rejoin within grace period
-      await expect(page2.locator('[data-testid="input-player-name"]')).toBeVisible({ timeout: 5000 });
+      await expect(page2.locator('[data-testid="input-player-name"]')).toBeVisible({ timeout: 5001 });
       
       // Rejoin with same name
       await page2.fill('[data-testid="input-player-name"]', 'Player2');
@@ -194,7 +194,7 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
 
     try {
       // Player 1 creates room
-      await page1.goto('http://localhost:5000');
+      await page1.goto('http://localhost:5001');
       await page1.fill('[data-testid="input-player-name"]', 'HostPlayer');
       await page1.click('[data-testid="button-create-room"]');
       
@@ -202,7 +202,7 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
       const roomCode = await page1.locator('[data-testid="text-room-code"]').textContent();
 
       // Player 2 joins
-      await page2.goto('http://localhost:5000');
+      await page2.goto('http://localhost:5001');
       await page2.fill('[data-testid="input-player-name"]', 'DisconnectPlayer');
       await page2.click('[data-testid="button-join-room"]');
       await page2.fill('[data-testid="input-room-code"]', roomCode!);
@@ -222,10 +222,10 @@ test.describe('WebSocket Integration - Player Reconnection', () => {
 
       // Wait for grace period to expire (30 seconds + buffer)
       // Note: This test will take ~35 seconds to complete
-      await page1.waitForTimeout(35000);
+      await page1.waitForTimeout(35001);
 
       // Verify DisconnectPlayer was removed from scoreboard
-      await expect(page1.locator('[data-testid="text-score-DisconnectPlayer"]')).not.toBeVisible({ timeout: 5000 });
+      await expect(page1.locator('[data-testid="text-score-DisconnectPlayer"]')).not.toBeVisible({ timeout: 5001 });
       
       // Verify HostPlayer is still there
       await expect(page1.locator('[data-testid="text-score-HostPlayer"]')).toBeVisible();
@@ -248,7 +248,7 @@ test.describe('WebSocket Integration - Multiplayer Score Synchronization', () =>
 
     try {
       // Player 1 creates room
-      await page1.goto('http://localhost:5000');
+      await page1.goto('http://localhost:5001');
       await page1.fill('[data-testid="input-player-name"]', 'SyncPlayer1');
       await page1.click('[data-testid="button-create-room"]');
       
@@ -256,7 +256,7 @@ test.describe('WebSocket Integration - Multiplayer Score Synchronization', () =>
       const roomCode = await page1.locator('[data-testid="text-room-code"]').textContent();
 
       // Player 2 joins
-      await page2.goto('http://localhost:5000');
+      await page2.goto('http://localhost:5001');
       await page2.fill('[data-testid="input-player-name"]', 'SyncPlayer2');
       await page2.click('[data-testid="button-join-room"]');
       await page2.fill('[data-testid="input-room-code"]', roomCode!);
@@ -367,7 +367,7 @@ test.describe('WebSocket Integration - Multiplayer Score Synchronization', () =>
 
     try {
       // Player 1 creates room
-      await page1.goto('http://localhost:5000');
+      await page1.goto('http://localhost:5001');
       await page1.fill('[data-testid="input-player-name"]', 'Alpha');
       await page1.click('[data-testid="button-create-room"]');
       
@@ -375,14 +375,14 @@ test.describe('WebSocket Integration - Multiplayer Score Synchronization', () =>
       const roomCode = await page1.locator('[data-testid="text-room-code"]').textContent();
 
       // Player 2 joins
-      await page2.goto('http://localhost:5000');
+      await page2.goto('http://localhost:5001');
       await page2.fill('[data-testid="input-player-name"]', 'Beta');
       await page2.click('[data-testid="button-join-room"]');
       await page2.fill('[data-testid="input-room-code"]', roomCode!);
       await page2.click('[data-testid="button-join"]');
 
       // Player 3 joins
-      await page3.goto('http://localhost:5000');
+      await page3.goto('http://localhost:5001');
       await page3.fill('[data-testid="input-player-name"]', 'Gamma');
       await page3.click('[data-testid="button-join-room"]');
       await page3.fill('[data-testid="input-room-code"]', roomCode!);

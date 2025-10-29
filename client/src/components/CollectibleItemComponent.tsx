@@ -1,7 +1,7 @@
 import { CollectibleItem } from '@shared/schema';
-import cheeseImage from '@assets/generated_images/Yellow_cheese_game_item_8dd92be1.png';
-import appleImage from '@assets/generated_images/Red_apple_game_item_b556ba8e.png';
-import breadImage from '@assets/generated_images/Bread_loaf_game_item_335458bc.png';
+import cheeseImage from '@assets/generated_images/yellow_cheese.png';
+import appleImage from '@assets/generated_images/red_apple.png';
+import breadImage from '@assets/generated_images/bread_loaf.png';
 
 interface CollectibleItemComponentProps {
   item: CollectibleItem;

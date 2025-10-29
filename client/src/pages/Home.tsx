@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { MousePointer2, Users, Play, Trophy, GraduationCap } from 'lucide-react';
-import mouseImage from '@assets/generated_images/Cheerful_mouse_mascot_character_88dac16c.png';
-import cheeseImage from '@assets/generated_images/Yellow_cheese_game_item_8dd92be1.png';
-import appleImage from '@assets/generated_images/Red_apple_game_item_b556ba8e.png';
-import breadImage from '@assets/generated_images/Bread_loaf_game_item_335458bc.png';
+import mouseImage from '@assets/generated_images/cheerful_mouse_mascot_character.png';
+import cheeseImage from '@assets/generated_images/yellow_cheese.png';
+import appleImage from '@assets/generated_images/red_apple.png';
+import breadImage from '@assets/generated_images/bread_loaf.png';
 
 export default function Home() {
   const [, setLocation] = useLocation();

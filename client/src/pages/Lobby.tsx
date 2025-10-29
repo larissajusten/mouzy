@@ -63,7 +63,7 @@ export default function Lobby() {
     return () => {
       socket.close();
     };
-  }, [roomCode, playerId, setLocation, toast]);
+  }, [roomCode, playerId]);
 
   const handleCopyCode = async () => {
     try {

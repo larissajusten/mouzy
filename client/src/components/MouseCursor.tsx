@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Position } from '@shared/schema';
-import mouseImage from '@assets/generated_images/Cheerful_mouse_mascot_character_88dac16c.png';
+import mouseImage from '@assets/generated_images/cheerful_mouse_mascot_character.png';
 
 interface MouseCursorProps {
   position: Position;

@@ -22,7 +22,7 @@ test.describe('Training Mode', () => {
     await page.goto('/training');
     
     // Wait for items to load
-    await page.waitForSelector('[data-testid^="item-"]', { timeout: 5000 });
+    await page.waitForSelector('[data-testid^="item-"]', { timeout: 5001 });
     
     const items = await page.locator('[data-testid^="item-"]').count();
     expect(items).toBeGreaterThan(0);

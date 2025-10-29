@@ -85,13 +85,10 @@ export default function Game() {
     return () => {
       socket.close();
     };
-  }, [roomCode, playerId, setLocation]);
+  }, [roomCode, playerId]);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    const container = document.getElementById('game-arena');
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
@@ -128,13 +125,7 @@ export default function Game() {
     setHoveredItem(hovered || null);
   }, [ws, room, roomCode, playerId]);
 
-  useEffect(() => {
-    const container = document.getElementById('game-arena');
-    if (!container) return;
-
-    container.addEventListener('mousemove', handleMouseMove);
-    return () => container.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
+  // React-managed mouse move via onMouseMove avoids event listener timing issues
 
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
     if (!hoveredItem || !ws || ws.readyState !== WebSocket.OPEN) return;
@@ -218,6 +209,7 @@ export default function Game() {
           id="game-arena"
           data-testid="game-arena"
           className="flex-1 relative cursor-none overflow-hidden"
+          onMouseMove={handleMouseMove}
           style={{
             backgroundImage: `radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)`,
             backgroundSize: '30px 30px',
@@ -234,7 +226,7 @@ export default function Game() {
           {room.players.map(player => (
             <MouseCursor
               key={player.id}
-              position={player.position}
+              position={player.id === playerId ? mousePosition : player.position}
               color={player.color}
               playerName={player.name}
               isLocal={player.id === playerId}
