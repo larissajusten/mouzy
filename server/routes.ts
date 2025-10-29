@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { CreateRoomInput, createRoomSchema, JoinRoomInput, joinRoomSchema, WebSocketMessage, PlayerStats } from "@shared/schema";
+import { CreateRoomInput, createRoomSchema, JoinRoomInput, joinRoomSchema, WebSocketMessage, PlayerStats, DifficultyLevel } from "@shared/schema";
 
 interface WSClient extends WebSocket {
   roomCode?: string;
@@ -16,7 +16,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { room, playerId } = await storage.createRoom(
         input.playerName,
         input.timerDuration,
-        input.difficulty
+        input.difficulty as DifficultyLevel
       );
       res.json({ code: room.code, playerId });
     } catch (error) {
@@ -126,14 +126,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rooms.get(roomCode)!.add(ws);
 
             console.log(`Player ${playerId} joined room ${roomCode}`);
-            await sendRoomState(ws, roomCode);
             
-            const room = await storage.getRoom(roomCode);
-            if (room) {
-              const player = room.players.find(p => p.id === playerId);
-              if (player) {
-                broadcastToRoom(roomCode, { type: 'player-joined', player }, ws);
-              }
+            // Enviar estado completo da sala para TODOS os clientes (incluindo o novo)
+            const clients = rooms.get(roomCode);
+            if (clients) {
+              clients.forEach(client => {
+                sendRoomState(client, roomCode);
+              });
             }
             break;
           }

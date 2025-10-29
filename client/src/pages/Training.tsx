@@ -154,13 +154,14 @@ export default function Training() {
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
     if (!hoveredItem) return;
 
-    const key = e.key.toLowerCase();
-    const isShiftPressed = e.shiftKey;
-    const expectedKey = hoveredItem.letter.toLowerCase();
+    const key = e.key;
+    const expectedLetter = hoveredItem.letter;
 
+    // Para maiúsculas: verificar se é a letra correta (case-insensitive) E Shift está pressionado
+    // Para símbolos e caracteres especiais: verificar correspondência exata
     const isCorrect = hoveredItem.requiresShift
-      ? isShiftPressed && key === expectedKey
-      : !isShiftPressed && key === expectedKey;
+      ? key === expectedLetter
+      : key.toLowerCase() === expectedLetter.toLowerCase();
 
     if (isCorrect) {
       playCorrectSound();
