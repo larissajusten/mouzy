@@ -106,11 +106,43 @@ Suites E2E em `e2e/` (fluxo de jogo, multiplayer, achievements, etc.).
 - Evitar efeitos com dependências instáveis que reconectem o WS desnecessariamente.
 
 ## Licença
-Sugestões comuns:
-- MIT: padrão permissivo e simples para projetos web.
-- Apache-2.0: similar ao MIT, com cláusula de patentes.
 
-Escolha a licença e atualize este arquivo e `LICENSE` conforme desejado. Assets (imagens/áudio) podem ter licenças diferentes — documente-as separadamente.
+### Código
+O código fonte deste projeto está licenciado sob a [Apache License, Version 2.0](LICENSE).
+
+Copyright (c) 2025 [Seu Nome ou Organização]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+### Assets (Imagens/Áudio)
+Os assets visuais e de áudio localizados em `/attached_assets/` estão licenciados sob a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0).
+
+Para mais detalhes, consulte [ASSETS_LICENSE.md](ASSETS_LICENSE.md).
+
+Você é livre para:
+- **Compartilhar** — copiar e redistribuir o material em qualquer meio ou formato
+- **Adaptar** — remixar, transformar e construir sobre o material para qualquer fim, mesmo comercial
+
+Sob os seguintes termos:
+- **Atribuição** — Você deve dar o crédito apropriado, fornecer um link para a licença e indicar se foram feitas alterações. Você pode fazê-lo de qualquer forma razoável, mas não de uma forma que sugira que o licenciador endossa você ou seu uso.
+
+#### Assets incluídos:
+- `Cheerful_mouse_mascot_character_88dac16c.png` — Personagem do rato
+- `Yellow_cheese_game_item_8dd92be1.png` — Item de queijo
+- `Red_apple_game_item_b556ba8e.png` — Item de maçã
+- `Bread_loaf_game_item_335458bc.png` — Item de pão
+
+Se você usar estes assets, atribua adequadamente ao projeto e mantenha a mesma licença CC BY 4.0 ou equivalente para as versões modificadas.
 
 ## Créditos
 - UI baseada em componentes do projeto (Radix + Tailwind)
