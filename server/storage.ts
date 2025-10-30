@@ -12,6 +12,7 @@ export interface IStorage {
   updateTimer(roomCode: string, timeRemaining: number): Promise<void>;
   removePlayer(roomCode: string, playerId: string): Promise<void>;
   deleteRoom(roomCode: string): Promise<void>;
+  respawnItem(roomCode: string): Promise<CollectibleItem | null>;
 }
 
 export class MemStorage implements IStorage {
@@ -245,6 +246,73 @@ export class MemStorage implements IStorage {
 
   async deleteRoom(roomCode: string): Promise<void> {
     this.rooms.delete(roomCode);
+  }
+
+  async respawnItem(roomCode: string): Promise<CollectibleItem | null> {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.gameState !== 'playing') {
+      return null;
+    }
+
+    const arenaWidth = 1200;
+    const arenaHeight = 700;
+    const minDistance = 80;
+
+    const getRandomPosition = (): Position => {
+      return {
+        x: Math.random() * (arenaWidth - 100) + 50,
+        y: Math.random() * (arenaHeight - 100) + 50,
+      };
+    };
+
+    const isFarEnough = (pos: Position, existingPositions: Position[]): boolean => {
+      return existingPositions.every(existing => {
+        const distance = Math.sqrt(
+          Math.pow(pos.x - existing.x, 2) + Math.pow(pos.y - existing.y, 2)
+        );
+        return distance >= minDistance;
+      });
+    };
+
+    const letterSets = {
+      [DifficultyLevel.VOGAIS]: ['a', 'e', 'i', 'o', 'u'],
+      [DifficultyLevel.CONSOANTES]: ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'z'],
+      [DifficultyLevel.MAIUSCULAS]: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
+      [DifficultyLevel.SIMBOLOS]: ['!', '@', '#', '$', '%', '&', '*', '(', ')', '+', '=', '<', '>', '?', ':', ';'],
+    };
+
+    const itemTypes = ['cheese-small', 'cheese-medium', 'apple', 'bread'] as const;
+    const existingPositions = room.items.map(item => item.position);
+
+    let position: Position;
+    let attempts = 0;
+    do {
+      position = getRandomPosition();
+      attempts++;
+    } while (!isFarEnough(position, existingPositions) && attempts < 50);
+
+    const letters = letterSets[room.difficulty];
+    const letter = letters[Math.floor(Math.random() * letters.length)];
+    const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+    
+    const points = room.difficulty === DifficultyLevel.VOGAIS ? 1 :
+                   room.difficulty === DifficultyLevel.CONSOANTES ? 2 :
+                   room.difficulty === DifficultyLevel.MAIUSCULAS ? 3 : 5;
+
+    const newItem: CollectibleItem = {
+      id: randomUUID(),
+      type: itemType,
+      position,
+      letter,
+      difficultyLevel: room.difficulty,
+      points,
+      requiresShift: room.difficulty === DifficultyLevel.MAIUSCULAS || room.difficulty === DifficultyLevel.SIMBOLOS,
+    };
+
+    room.items.push(newItem);
+    this.rooms.set(roomCode, room);
+
+    return newItem;
   }
 }
 

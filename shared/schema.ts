@@ -76,6 +76,7 @@ export type WebSocketMessage =
   | { type: 'player-moved'; playerId: string; position: Position }
   | { type: 'game-started'; items: CollectibleItem[]; startedAt: number }
   | { type: 'item-collected'; itemId: string; playerId: string; correct: boolean; newScore: number }
+  | { type: 'item-respawned'; item: CollectibleItem }
   | { type: 'timer-update'; timeRemaining: number }
   | { type: 'game-ended'; stats: PlayerStats[] }
   | { type: 'room-state'; room: GameRoom };

@@ -41,6 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const timers = new Map<string, NodeJS.Timeout>();
   const disconnectTimers = new Map<string, NodeJS.Timeout>(); // playerId -> timeout
   const roomCleanupTimers = new Map<string, NodeJS.Timeout>(); // roomCode -> timeout for empty room cleanup
+  const itemRespawnTimers = new Map<string, NodeJS.Timeout>(); // itemId -> timeout for respawn
 
   function broadcastToRoom(roomCode: string, message: WebSocketMessage, excludeClient?: WSClient) {
     const clients = rooms.get(roomCode);
@@ -85,6 +86,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function endGame(roomCode: string) {
     await storage.endGame(roomCode);
     const room = await storage.getRoom(roomCode);
+    
+    // Clear all item respawn timers for this room
+    itemRespawnTimers.forEach((timer, itemId) => {
+      clearTimeout(timer);
+      itemRespawnTimers.delete(itemId);
+    });
     
     if (room) {
       const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
@@ -205,6 +212,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               newScore,
             });
 
+            // Schedule item respawn after 5 seconds
+            const respawnTimer = setTimeout(async () => {
+              const newItem = await storage.respawnItem(roomCode);
+              if (newItem) {
+                broadcastToRoom(roomCode, {
+                  type: 'item-respawned',
+                  item: newItem,
+                });
+              }
+              itemRespawnTimers.delete(itemId);
+            }, 5000);
+            
+            itemRespawnTimers.set(itemId, respawnTimer);
+
             const room = await storage.getRoom(roomCode);
             if (room && room.items.length === 0 && room.gameState === 'playing') {
               const timer = timers.get(roomCode);
@@ -268,15 +289,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   clearInterval(timer);
                   timers.delete(roomCode);
                 }
+                // Clear all item respawn timers for this room
+                itemRespawnTimers.forEach((respawnTimer, itemId) => {
+                  clearTimeout(respawnTimer);
+                  itemRespawnTimers.delete(itemId);
+                });
                 await storage.deleteRoom(roomCode);
                 console.log(`Room ${roomCode} deleted after grace period (no clients rejoined)`);
               } else {
                 console.log(`Room ${roomCode} not deleted, clients rejoined during grace period`);
               }
               roomCleanupTimers.delete(roomCode);
-            }, 30000); // 30 segundos
+            }, 5000); // 5 segundos
             roomCleanupTimers.set(roomCode, timeout);
-            console.log(`Scheduled empty-room cleanup for room ${roomCode} in 30s`);
+            console.log(`Scheduled empty-room cleanup for room ${roomCode} in 5s`);
           } else {
             // Se ainda há outros clientes, dar 30 segundos para reconectar
             const roomCode = ws.roomCode;
