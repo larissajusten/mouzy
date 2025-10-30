@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Target, Clock, Home } from 'lucide-react';
-import { PlayerStats } from '@shared/schema';
+import { PlayerStats, WebSocketMessage, DifficultyLevel } from '@shared/schema';
 import { useAchievements } from '@/hooks/use-achievements';
 import { AchievementToast } from '@/components/AchievementToast';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 export default function Results() {
   const [, params] = useRoute('/results/:code');
@@ -15,7 +16,6 @@ export default function Results() {
   const roomCode = params?.code || '';
 
   const [stats, setStats] = useState<PlayerStats[]>([]);
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const [gameProcessed, setGameProcessed] = useState(false);
   const [roomDifficulty, setRoomDifficulty] = useState<number | null>(null);
   const [roomPlayers, setRoomPlayers] = useState<string[]>([]);
@@ -25,41 +25,32 @@ export default function Results() {
   
   const { newAchievements, updateProgress, clearNewAchievements } = useAchievements(playerId, playerName);
 
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'get-results', roomCode }));
-    };
-
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    if (message.type === 'game-ended') {
+      setStats(message.stats);
+    } else if (message.type === 'room-state') {
+      setRoomDifficulty(message.room.difficulty);
+      setRoomPlayers(message.room.players.map((p: any) => p.id).filter((id: string) => id !== playerId));
       
-      if (message.type === 'game-ended') {
-        setStats(message.stats);
-      } else if (message.type === 'room-state') {
-        setRoomDifficulty(message.room.difficulty);
-        setRoomPlayers(message.room.players.map((p: any) => p.id).filter((id: string) => id !== playerId));
-        
-        const finalStats = message.room.players.map((player: any, index: number) => ({
-          position: index + 1,
-          player,
-          accuracy: player.totalAttempts > 0 ? (player.correctAttempts / player.totalAttempts) * 100 : 0,
-          timeElapsed: 0,
-        })).sort((a: any, b: any) => b.player.score - a.player.score);
-        
-        setStats(finalStats);
-      }
-    };
+      // Sort first, then assign positions
+      const sortedPlayers = [...message.room.players].sort((a: any, b: any) => b.score - a.score);
+      const finalStats = sortedPlayers.map((player: any, index: number) => ({
+        position: index + 1,
+        player,
+        accuracy: player.totalAttempts > 0 ? (player.correctAttempts / player.totalAttempts) * 100 : 0,
+        timeElapsed: 0,
+      }));
+      
+      setStats(finalStats);
+    }
+  }, [playerId]);
 
-    setWs(socket);
-
-    return () => {
-      socket.close();
-    };
-  }, [roomCode, playerId]);
+  useWebSocket({
+    roomCode,
+    playerId,
+    initialMessage: { type: 'get-results', roomCode },
+    onMessage: handleWebSocketMessage,
+  });
 
   useEffect(() => {
     if (currentPlayerStats && !gameProcessed && playerId && roomDifficulty !== null) {
@@ -75,7 +66,7 @@ export default function Results() {
           correctAttempts: currentPlayerStats.player.correctAttempts,
           totalAttempts: currentPlayerStats.player.totalAttempts,
           score: matchScore,
-          difficulty: roomDifficulty,
+          difficulty: roomDifficulty as DifficultyLevel,
           gameCompleted: true,
           opponents: roomPlayers,
           matchAccuracy,

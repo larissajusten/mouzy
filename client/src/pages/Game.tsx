@@ -10,6 +10,7 @@ import { FloatingScore } from '@/components/FloatingScore';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { playCorrectSound, playIncorrectSound, playCollectSound } from '@/lib/sounds';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 interface FloatingScoreData {
   id: string;
@@ -26,7 +27,6 @@ export default function Game() {
   const roomCode = params?.code || '';
 
   const [room, setRoom] = useState<GameRoom | null>(null);
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const [mousePosition, setMousePosition] = useState<Position>({ x: 0, y: 0 });
   const [hoveredItem, setHoveredItem] = useState<CollectibleItem | null>(null);
   const [floatingScores, setFloatingScores] = useState<FloatingScoreData[]>([]);
@@ -34,58 +34,64 @@ export default function Game() {
 
   const currentPlayer = room?.players.find(p => p.id === playerId);
 
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'join-room', roomCode, playerId }));
-    };
-
-    socket.onmessage = (event) => {
-      const message: WebSocketMessage = JSON.parse(event.data);
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    if (message.type === 'room-state') {
+      setRoom(message.room);
       
-      if (message.type === 'room-state') {
-        setRoom(message.room);
-        
-        if (message.room.gameState === 'finished') {
-          setLocation(`/results/${roomCode}?playerId=${playerId}`);
-        }
-      } else if (message.type === 'item-collected') {
-        setRoom(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            items: prev.items.filter(i => i.id !== message.itemId),
-            players: prev.players.map(p =>
-              p.id === message.playerId
-                ? { ...p, score: message.newScore, itemsCollected: p.itemsCollected + 1 }
-                : p
-            ),
-          };
-        });
-      } else if (message.type === 'timer-update') {
-        setRoom(prev => prev ? { ...prev, timeRemaining: message.timeRemaining } : prev);
-      } else if (message.type === 'player-moved') {
-        setRoom(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            players: prev.players.map(p =>
-              p.id === message.playerId ? { ...p, position: message.position } : p
-            ),
-          };
-        });
+      if (message.room.gameState === 'finished') {
+        setLocation(`/results/${roomCode}?playerId=${playerId}`);
       }
-    };
+    } else if (message.type === 'game-started') {
+      setRoom(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: message.items,
+          gameState: 'playing',
+          startedAt: message.startedAt,
+        };
+      });
+    } else if (message.type === 'item-collected') {
+      setRoom(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.filter(i => i.id !== message.itemId),
+          players: prev.players.map(p =>
+            p.id === message.playerId
+              ? { ...p, score: message.newScore, itemsCollected: p.itemsCollected + 1 }
+              : p
+          ),
+        };
+      });
+    } else if (message.type === 'item-respawned') {
+      setRoom(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: [...prev.items, message.item],
+        };
+      });
+    } else if (message.type === 'timer-update') {
+      setRoom(prev => prev ? { ...prev, timeRemaining: message.timeRemaining } : prev);
+    } else if (message.type === 'player-moved') {
+      setRoom(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map(p =>
+            p.id === message.playerId ? { ...p, position: message.position } : p
+          ),
+        };
+      });
+    }
+  }, [roomCode, playerId, setLocation]);
 
-    setWs(socket);
-
-    return () => {
-      socket.close();
-    };
-  }, [roomCode, playerId]);
+  const { sendMessage } = useWebSocket({
+    roomCode,
+    playerId,
+    onMessage: handleWebSocketMessage,
+  });
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -101,13 +107,13 @@ export default function Game() {
       Math.pow(x - lastSentPosition.current.x, 2) + Math.pow(y - lastSentPosition.current.y, 2)
     );
 
-    if (ws && ws.readyState === WebSocket.OPEN && (timeSinceLastSend > 50 || distanceMoved > 10)) {
-      ws.send(JSON.stringify({
+    if (timeSinceLastSend > 50 || distanceMoved > 10) {
+      sendMessage({
         type: 'player-move',
         roomCode,
         playerId,
         position: { x, y },
-      }));
+      });
       lastSentPosition.current.x = x;
       lastSentPosition.current.y = y;
       lastSentPosition.current.time = now;
@@ -123,12 +129,12 @@ export default function Game() {
     });
 
     setHoveredItem(hovered || null);
-  }, [ws, room, roomCode, playerId]);
+  }, [room, roomCode, playerId, sendMessage]);
 
   // React-managed mouse move via onMouseMove avoids event listener timing issues
 
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
-    if (!hoveredItem || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!hoveredItem) return;
 
     const key = e.key;
     
@@ -152,13 +158,13 @@ export default function Game() {
       playIncorrectSound();
     }
 
-    ws.send(JSON.stringify({
+    sendMessage({
       type: 'collect-item',
       roomCode,
       playerId,
       itemId: hoveredItem.id,
       correct: isCorrect,
-    }));
+    });
 
     const scoreData: FloatingScoreData = {
       id: Date.now().toString(),
@@ -169,7 +175,7 @@ export default function Game() {
     setFloatingScores(prev => [...prev, scoreData]);
 
     setHoveredItem(null);
-  }, [hoveredItem, ws, roomCode, playerId]);
+  }, [hoveredItem, roomCode, playerId, sendMessage]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);

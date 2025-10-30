@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Copy, Users, Play, ArrowLeft, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { GameRoom } from '@shared/schema';
+import { GameRoom, WebSocketMessage } from '@shared/schema';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 export default function Lobby() {
   const [, params] = useRoute('/lobby/:code');
@@ -16,54 +17,42 @@ export default function Lobby() {
 
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [copied, setCopied] = useState(false);
-  const [ws, setWs] = useState<WebSocket | null>(null);
 
   const isHost = room?.hostId === playerId;
 
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'join-room', roomCode, playerId }));
-    };
-
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
+  const handleMessage = useCallback((message: WebSocketMessage) => {
+    if (message.type === 'room-state') {
+      setRoom(message.room);
       
-      if (message.type === 'room-state') {
-        setRoom(message.room);
-        
-        if (message.room.gameState === 'playing') {
-          setLocation(`/game/${roomCode}?playerId=${playerId}`);
-        }
-      } else if (message.type === 'player-left') {
-        // Atualizar UI removendo o jogador que saiu
-        setRoom(prevRoom => {
-          if (!prevRoom) return prevRoom;
-          return {
-            ...prevRoom,
-            players: prevRoom.players.filter(p => p.id !== message.playerId)
-          };
-        });
+      if (message.room.gameState === 'playing') {
+        setLocation(`/game/${roomCode}?playerId=${playerId}`);
       }
-    };
-
-    socket.onerror = () => {
-      toast({
-        title: 'Erro de conexão',
-        description: 'Não foi possível conectar ao servidor.',
-        variant: 'destructive',
+    } else if (message.type === 'player-left') {
+      // Atualizar UI removendo o jogador que saiu
+      setRoom(prevRoom => {
+        if (!prevRoom) return prevRoom;
+        return {
+          ...prevRoom,
+          players: prevRoom.players.filter(p => p.id !== message.playerId)
+        };
       });
-    };
+    }
+  }, [roomCode, playerId, setLocation]);
 
-    setWs(socket);
+  const handleError = useCallback(() => {
+    toast({
+      title: 'Erro de conexão',
+      description: 'Não foi possível conectar ao servidor.',
+      variant: 'destructive',
+    });
+  }, [toast]);
 
-    return () => {
-      socket.close();
-    };
-  }, [roomCode, playerId]);
+  const { sendMessage } = useWebSocket({
+    roomCode,
+    playerId,
+    onMessage: handleMessage,
+    onError: handleError,
+  });
 
   const handleCopyCode = async () => {
     try {
@@ -84,9 +73,7 @@ export default function Lobby() {
   };
 
   const handleStartGame = () => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'start-game', roomCode }));
-    }
+    sendMessage({ type: 'start-game', roomCode });
   };
 
   if (!room) {
