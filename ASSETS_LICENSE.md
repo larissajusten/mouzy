@@ -47,3 +47,9 @@ https://creativecommons.org/licenses/by/4.0/legalcode
 **Nota**: Esta licença se aplica apenas aos assets (imagens/áudio) em `/attached_assets/`. O código fonte do projeto está licenciado separadamente sob Apache License 2.0 (veja `LICENSE`).
 
 
+
+
+
+
+
+

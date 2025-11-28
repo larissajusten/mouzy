@@ -27,9 +27,12 @@ export default function Results() {
 
   const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
     if (message.type === 'game-ended') {
+      console.log('message', message);
+      debugger;
       setStats(message.stats);
     } else if (message.type === 'room-state') {
       setRoomDifficulty(message.room.difficulty);
+      console.log('message.room.players', message.room.players);
       setRoomPlayers(message.room.players.map((p: any) => p.id).filter((id: string) => id !== playerId));
       
       // Sort first, then assign positions
@@ -93,7 +96,7 @@ export default function Results() {
       <div className="max-w-4xl w-full space-y-6">
         <Card className="p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <h1 data-testid="text-game-over" className="text-4xl font-bold mb-2">Fim de Jogo!</h1>
+            <h1 data-testid="text-game-over" className="text-4xl font-bold mb-2">  Jogo!</h1>
             <p data-testid="text-player-position" className="text-xl text-muted-foreground">
               Você ficou em {currentPlayerStats?.position}º lugar
             </p>

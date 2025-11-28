@@ -121,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
-        console.log('WebSocket message received:', message.type, message);
+        console.warn('WebSocket message received:', message.type, message);
 
         switch (message.type) {
           case 'join-room': {
