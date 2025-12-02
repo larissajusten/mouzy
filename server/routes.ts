@@ -3,6 +3,21 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { CreateRoomInput, createRoomSchema, JoinRoomInput, joinRoomSchema, WebSocketMessage, PlayerStats, DifficultyLevel } from "@shared/schema";
+import { logger } from "./lib/logger";
+import { Sentry } from "./lib/sentry";
+import { 
+  register, 
+  activeRooms, 
+  activePlayers, 
+  websocketConnections, 
+  gamesStarted, 
+  gamesEnded, 
+  roomsCreated, 
+  playersJoined, 
+  itemsCollected, 
+  websocketMessages, 
+  websocketMessageDuration 
+} from "./lib/metrics";
 
 interface WSClient extends WebSocket {
   roomCode?: string;
@@ -10,6 +25,17 @@ interface WSClient extends WebSocket {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Metrics endpoint for Prometheus
+  app.get("/metrics", async (_req, res) => {
+    try {
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } catch (error) {
+      logger.error('Error generating metrics', { error });
+      res.status(500).end();
+    }
+  });
+
   app.post("/api/rooms/create", async (req, res) => {
     try {
       const input = createRoomSchema.parse(req.body) as CreateRoomInput;
@@ -18,8 +44,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         input.timerDuration,
         input.difficulty as DifficultyLevel
       );
+      roomsCreated.inc();
+      logger.info('Room created', { roomCode: room.code, playerId, difficulty: input.difficulty });
       res.json({ code: room.code, playerId });
     } catch (error) {
+      logger.error('Failed to create room', { error });
       res.status(400).json({ error: 'Failed to create room' });
     }
   });
@@ -28,8 +57,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const input = joinRoomSchema.parse(req.body) as JoinRoomInput;
       const { room, playerId } = await storage.joinRoom(input.roomCode, input.playerName);
+      playersJoined.inc();
+      logger.info('Player joined room', { roomCode: input.roomCode, playerId });
       res.json({ playerId });
     } catch (error) {
+      logger.error('Failed to join room', { error, roomCode: req.body.roomCode });
       res.status(400).json({ error: 'Failed to join room' });
     }
   });
@@ -93,6 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     if (room) {
+      gamesEnded.inc();
       const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
       const stats: PlayerStats[] = sortedPlayers.map((player, index) => ({
         position: index + 1,
@@ -102,6 +135,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : 0,
         timeElapsed: room.startedAt ? Math.floor((Date.now() - room.startedAt) / 1000) : 0,
       }));
+
+      logger.info('Game ended', { 
+        roomCode, 
+        players: room.players.length,
+        topScore: sortedPlayers[0]?.score || 0
+      });
 
       broadcastToRoom(roomCode, { type: 'game-ended', stats });
       
@@ -114,10 +153,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Update metrics periodically
+  setInterval(() => {
+    activeRooms.set(rooms.size);
+    let totalPlayers = 0;
+    rooms.forEach((clients) => {
+      totalPlayers += clients.size;
+    });
+    activePlayers.set(totalPlayers);
+    websocketConnections.set(wss.clients.size);
+  }, 5000); // Update every 5 seconds
+
   wss.on('connection', (ws: WSClient) => {
+    websocketConnections.inc();
+    logger.debug('WebSocket connection opened');
+
     ws.on('message', async (data: Buffer) => {
+      const startTime = Date.now();
       try {
         const message = JSON.parse(data.toString());
+        const messageType = message.type || 'unknown';
+
+        // Track message metrics
+        websocketMessages.inc({ type: messageType });
 
         switch (message.type) {
           case 'join-room': {
@@ -128,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (roomCleanupTimers.has(roomCode)) {
               clearTimeout(roomCleanupTimers.get(roomCode));
               roomCleanupTimers.delete(roomCode);
-              console.log(`Cancelled empty-room cleanup timer for room ${roomCode} (client rejoined)`);
+              logger.debug(`Cancelled empty-room cleanup timer for room ${roomCode}`);
             }
 
             if (playerId) {
@@ -136,12 +194,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (disconnectTimers.has(disconnectTimerKey)) {
                 clearTimeout(disconnectTimers.get(disconnectTimerKey));
                 disconnectTimers.delete(disconnectTimerKey);
-                console.log(`Player ${playerId} reconnected to room ${roomCode}`);
+                logger.debug('Player reconnected', { playerId, roomCode });
               } else {
-                console.log(`Player ${playerId} joined room ${roomCode}`);
+                logger.debug('Player joined room', { playerId, roomCode });
               }
             } else {
-              console.log(`Client (no playerId) joined room ${roomCode} for viewing results`);
+              logger.debug('Client joined room for viewing results', { roomCode });
             }
 
             if (!rooms.has(roomCode)) {
@@ -160,10 +218,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'start-game': {
             const { roomCode } = message;
+            gamesStarted.inc();
             const items = await storage.startGame(roomCode);
             const room = await storage.getRoom(roomCode);
             
             if (room) {
+              logger.info('Game started', { roomCode, players: room.players.length, items: items.length });
               broadcastToRoom(roomCode, { 
                 type: 'game-started', 
                 items, 
@@ -198,6 +258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'collect-item': {
             const { roomCode, playerId, itemId, correct } = message;
             const { newScore } = await storage.collectItem(roomCode, playerId, itemId, correct);
+            
+            itemsCollected.inc({ correct: correct ? 'true' : 'false' });
             
             broadcastToRoom(roomCode, {
               type: 'item-collected',
@@ -259,16 +321,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
           }
         }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
+
+        // Record message processing duration
+        const duration = (Date.now() - startTime) / 1000;
+        websocketMessageDuration.observe({ type: messageType }, duration);
+      } catch (error: any) {
+        logger.error('WebSocket message error', { error, message: data.toString() });
+        
+        // Capture error in Sentry
+        Sentry.captureException(error, {
+          tags: {
+            type: 'websocket',
+            messageType: messageType || 'unknown',
+          },
+          extra: {
+            message: data.toString(),
+            roomCode: ws.roomCode,
+            playerId: ws.playerId,
+          }
+        });
       }
     });
 
     ws.on('close', async () => {
+      websocketConnections.dec();
       if (ws.roomCode && ws.playerId) {
         const clients = rooms.get(ws.roomCode);
         if (clients) {
           clients.delete(ws);
+          logger.debug('Player disconnected', { 
+            playerId: ws.playerId, 
+            roomCode: ws.roomCode, 
+            remainingClients: clients.size 
+          });
 
           if (clients.size === 0) {
             const roomCode = ws.roomCode;

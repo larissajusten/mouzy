@@ -1,6 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { logger } from "./lib/logger";
+import { httpRequestDuration, httpRequests } from "./lib/metrics";
+import { initSentry, Sentry } from "./lib/sentry";
+
+// Initialize Sentry
+initSentry();
 
 const app = express();
 
@@ -16,6 +22,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// Metrics and logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -28,18 +35,23 @@ app.use((req, res, next) => {
   };
 
   res.on("finish", () => {
-    const duration = Date.now() - start;
+    const duration = (Date.now() - start) / 1000; // Convert to seconds
+    const route = path.startsWith("/api") ? path : "static";
+    
+    // Record metrics
+    httpRequestDuration.observe(
+      { method: req.method, route, status: res.statusCode.toString() },
+      duration
+    );
+    httpRequests.inc({ method: req.method, route, status: res.statusCode.toString() });
+
+    // Log API requests
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      logger.info(`${req.method} ${path}`, {
+        statusCode: res.statusCode,
+        duration: `${(duration * 1000).toFixed(2)}ms`,
+        response: capturedJsonResponse
+      });
     }
   });
 
@@ -49,12 +61,36 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Sentry error handler must be before other error handlers
+  // setupExpressErrorHandler modifies the app directly
+  Sentry.setupExpressErrorHandler(app);
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log error with Winston
+    logger.error('Request error', {
+      error: err.message,
+      stack: err.stack,
+      status,
+      path: _req.path
+    });
+
+    // Capture error in Sentry with additional context
+    Sentry.captureException(err, {
+      tags: {
+        route: _req.path,
+        method: _req.method,
+      },
+      extra: {
+        statusCode: status,
+        body: _req.body,
+        query: _req.query,
+      }
+    });
+
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -76,6 +112,7 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    logger.info(`Server started on port ${port}`, { port, env: process.env.NODE_ENV });
     log(`serving on port ${port}`);
   });
 })();
