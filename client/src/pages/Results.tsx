@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Trophy, Target, Clock, Home } from 'lucide-react';
+import { Trophy, Target, Home } from 'lucide-react';
 import { PlayerStats, WebSocketMessage, DifficultyLevel } from '@shared/schema';
 import { useAchievements } from '@/hooks/use-achievements';
 import { AchievementToast } from '@/components/AchievementToast';
@@ -10,7 +10,7 @@ import { useWebSocket } from '@/hooks/use-websocket';
 
 export default function Results() {
   const [, params] = useRoute('/results/:code');
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const queryParams = new URLSearchParams(window.location.search);
   const playerId = queryParams.get('playerId');
   const roomCode = params?.code || '';
@@ -25,35 +25,51 @@ export default function Results() {
   
   const { newAchievements, updateProgress, clearNewAchievements } = useAchievements(playerId, playerName);
 
-  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage, sendMessageFn?: (msg: object) => boolean) => {
+    console.log('[Results] WebSocket message received:', message.type, message);
+    
     if (message.type === 'game-ended') {
-      console.log('message', message);
-      debugger;
+      console.log('[Results] Received game-ended message with stats:', message.stats);
       setStats(message.stats);
     } else if (message.type === 'room-state') {
+      console.log('[Results] Received room-state, gameState:', message.room.gameState, 'players:', message.room.players);
       setRoomDifficulty(message.room.difficulty);
-      console.log('message.room.players', message.room.players);
       setRoomPlayers(message.room.players.map((p: any) => p.id).filter((id: string) => id !== playerId));
-      
-      // Sort first, then assign positions
-      const sortedPlayers = [...message.room.players].sort((a: any, b: any) => b.score - a.score);
-      const finalStats = sortedPlayers.map((player: any, index: number) => ({
-        position: index + 1,
-        player,
-        accuracy: player.totalAttempts > 0 ? (player.correctAttempts / player.totalAttempts) * 100 : 0,
-        timeElapsed: 0,
-      }));
-      
-      setStats(finalStats);
-    }
-  }, [playerId]);
 
-  useWebSocket({
+      if (message.room.gameState === 'finished') {
+        const sortedPlayers = [...message.room.players].sort((a: any, b: any) => b.score - a.score);
+        const finalStats = sortedPlayers.map((player: any, index: number) => ({
+          position: index + 1,
+          player,
+          accuracy: player.totalAttempts > 0 ? (player.correctAttempts / player.totalAttempts) * 100 : 0,
+          timeElapsed: message.room.startedAt ? Math.floor((Date.now() - message.room.startedAt) / 1000) : 0,
+        }));
+
+        setStats(finalStats);
+
+        if (sendMessageFn) {
+          setTimeout(() => {
+            sendMessageFn({ type: 'get-results', roomCode });
+          }, 100);
+        }
+      }
+    }
+  }, [playerId, roomCode]);
+
+  const { sendMessage, connected } = useWebSocket({
     roomCode,
     playerId,
-    initialMessage: { type: 'get-results', roomCode },
-    onMessage: handleWebSocketMessage,
+    onMessage: (msg) => handleWebSocketMessage(msg, sendMessage),
   });
+
+  useEffect(() => {
+    if (connected && roomCode) {
+      const timer = setTimeout(() => {
+        sendMessage({ type: 'get-results', roomCode });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [connected, roomCode, sendMessage]);
 
   useEffect(() => {
     if (currentPlayerStats && !gameProcessed && playerId && roomDifficulty !== null) {

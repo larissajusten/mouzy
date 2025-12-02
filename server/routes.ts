@@ -87,7 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.endGame(roomCode);
     const room = await storage.getRoom(roomCode);
     
-    // Clear all item respawn timers for this room
     itemRespawnTimers.forEach((timer, itemId) => {
       clearTimeout(timer);
       itemRespawnTimers.delete(itemId);
@@ -116,12 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   wss.on('connection', (ws: WSClient) => {
-    console.log('WebSocket connected');
-    
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
-        console.warn('WebSocket message received:', message.type, message);
 
         switch (message.type) {
           case 'join-room': {
@@ -129,21 +125,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ws.roomCode = roomCode;
             ws.playerId = playerId;
 
-            // If there was a pending cleanup for this room (because it became empty), cancel it
             if (roomCleanupTimers.has(roomCode)) {
               clearTimeout(roomCleanupTimers.get(roomCode));
               roomCleanupTimers.delete(roomCode);
               console.log(`Cancelled empty-room cleanup timer for room ${roomCode} (client rejoined)`);
             }
 
-            // Verificar se este jogador está reconectando (cancelar timeout de remoção)
-            const disconnectTimerKey = `${roomCode}:${playerId}`;
-            if (disconnectTimers.has(disconnectTimerKey)) {
-              clearTimeout(disconnectTimers.get(disconnectTimerKey));
-              disconnectTimers.delete(disconnectTimerKey);
-              console.log(`Player ${playerId} reconnected to room ${roomCode}`);
+            if (playerId) {
+              const disconnectTimerKey = `${roomCode}:${playerId}`;
+              if (disconnectTimers.has(disconnectTimerKey)) {
+                clearTimeout(disconnectTimers.get(disconnectTimerKey));
+                disconnectTimers.delete(disconnectTimerKey);
+                console.log(`Player ${playerId} reconnected to room ${roomCode}`);
+              } else {
+                console.log(`Player ${playerId} joined room ${roomCode}`);
+              }
             } else {
-              console.log(`Player ${playerId} joined room ${roomCode}`);
+              console.log(`Client (no playerId) joined room ${roomCode} for viewing results`);
             }
 
             if (!rooms.has(roomCode)) {
@@ -151,7 +149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             rooms.get(roomCode)!.add(ws);
             
-            // Enviar estado completo da sala para TODOS os clientes (incluindo o novo)
             const clients = rooms.get(roomCode);
             if (clients) {
               clients.forEach(client => {
@@ -163,12 +160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'start-game': {
             const { roomCode } = message;
-            console.log(`Starting game in room ${roomCode}`);
             const items = await storage.startGame(roomCode);
             const room = await storage.getRoom(roomCode);
             
             if (room) {
-              console.log(`Game started for room ${roomCode}, broadcasting to ${rooms.get(roomCode)?.size} clients`);
               broadcastToRoom(roomCode, { 
                 type: 'game-started', 
                 items, 
@@ -212,7 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               newScore,
             });
 
-            // Schedule item respawn after 5 seconds
             const respawnTimer = setTimeout(async () => {
               const newItem = await storage.respawnItem(roomCode);
               if (newItem) {
@@ -253,9 +247,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 timeElapsed: room.startedAt ? Math.floor((Date.now() - room.startedAt) / 1000) : 0,
               }));
 
+              console.log(`Sending game-ended with ${stats.length} player stats`);
               if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'game-ended', stats } as WebSocketMessage));
+              } else {
+                console.warn(`WebSocket not open, readyState: ${ws.readyState}`);
               }
+            } else {
+              console.warn(`Room ${roomCode} not found`);
             }
             break;
           }
@@ -270,9 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const clients = rooms.get(ws.roomCode);
         if (clients) {
           clients.delete(ws);
-          console.log(`Player ${ws.playerId} disconnected from room ${ws.roomCode}, ${clients.size} clients remaining`);
-          
-          // Se não sobrou ninguém na sala, agendar limpeza após um período de carência
+
           if (clients.size === 0) {
             const roomCode = ws.roomCode;
             if (roomCleanupTimers.has(roomCode)) {
@@ -280,7 +277,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               roomCleanupTimers.delete(roomCode);
             }
             const timeout = setTimeout(async () => {
-              // Double-check still empty
               const currentClients = rooms.get(roomCode);
               if (!currentClients || currentClients.size === 0) {
                 rooms.delete(roomCode);
@@ -289,27 +285,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   clearInterval(timer);
                   timers.delete(roomCode);
                 }
-                // Clear all item respawn timers for this room
+
                 itemRespawnTimers.forEach((respawnTimer, itemId) => {
                   clearTimeout(respawnTimer);
                   itemRespawnTimers.delete(itemId);
                 });
                 await storage.deleteRoom(roomCode);
-                console.log(`Room ${roomCode} deleted after grace period (no clients rejoined)`);
-              } else {
-                console.log(`Room ${roomCode} not deleted, clients rejoined during grace period`);
               }
               roomCleanupTimers.delete(roomCode);
             }, 5000); // 5 segundos
             roomCleanupTimers.set(roomCode, timeout);
-            console.log(`Scheduled empty-room cleanup for room ${roomCode} in 5s`);
           } else {
-            // Se ainda há outros clientes, dar 30 segundos para reconectar
             const roomCode = ws.roomCode;
             const playerId = ws.playerId;
             const disconnectTimerKey = `${roomCode}:${playerId}`;
             const timeout = setTimeout(async () => {
-              console.log(`Player ${playerId} removal timeout expired (30s), removing from room ${roomCode}`);
               await storage.removePlayer(roomCode, playerId);
               broadcastToRoom(roomCode, { 
                 type: 'player-left', 
@@ -319,7 +309,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }, 30000); // 30 segundos
             
             disconnectTimers.set(disconnectTimerKey, timeout);
-            console.log(`Started 30s reconnection grace period for player ${playerId}`);
           }
         }
       }

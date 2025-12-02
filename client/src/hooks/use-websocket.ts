@@ -18,12 +18,10 @@ export function useWebSocket({
 }: UseWebSocketOptions) {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
-  
-  // Use refs to avoid recreating the socket when callbacks change
+
   const onMessageRef = useRef(onMessage);
   const onErrorRef = useRef(onError);
-  
-  // Update refs when callbacks change
+
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
@@ -41,7 +39,14 @@ export function useWebSocket({
   }, [ws]);
 
   useEffect(() => {
-    if (!roomCode || !playerId) return;
+    if (!roomCode) {
+      console.log('[useWebSocket] No roomCode, skipping connection');
+      return;
+    }
+    if (!playerId && !initialMessage) {
+      console.log('[useWebSocket] No playerId and no initialMessage, skipping connection');
+      return;
+    }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -49,7 +54,6 @@ export function useWebSocket({
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log('WebSocket connected');
       setConnected(true);
       
       // Send initial join message or custom initial message
@@ -62,18 +66,17 @@ export function useWebSocket({
         const message: WebSocketMessage = JSON.parse(event.data);
         onMessageRef.current?.(message);
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('[useWebSocket] Error parsing WebSocket message:', error, event.data);
       }
     };
 
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('[useWebSocket] WebSocket error:', error);
       onErrorRef.current?.(error);
       setConnected(false);
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket closed');
+    socket.onclose = (_event) => {
       setConnected(false);
       setWs(null);
     };
