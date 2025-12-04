@@ -5,7 +5,7 @@ test.describe('Game Flow', () => {
     await page.goto('/');
     
     await expect(page.getByTestId('text-game-title')).toBeVisible();
-    await expect(page.getByTestId('text-game-title')).toHaveText(/Mouzzy/i);
+    await expect(page.getByTestId('text-game-title')).toHaveText(/Mouzy/i);
   });
 
   test('should navigate to create room page', async ({ page }) => {

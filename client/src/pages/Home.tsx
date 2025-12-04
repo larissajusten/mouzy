@@ -66,7 +66,7 @@ export default function Home() {
             />
           </div>
           <h1 data-testid="text-title" className="text-5xl font-bold text-primary">
-            Mouzyy
+            Mouzy
           </h1>
           <p data-testid="text-subtitle" className="text-lg text-muted-foreground font-medium">
             Aprenda letras enquanto se diverte!
